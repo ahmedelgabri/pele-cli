@@ -3,18 +3,30 @@ import {parseCommandLine} from './args.ts'
 import type {Flags} from './args.ts'
 import {check, listTypes, renderCommand} from './commands.ts'
 import {ExitCode} from './exit-code.ts'
+import {assertFlags, OUTPUT_FLAGS, RENDER_FLAGS} from './flag-rules.ts'
 import {UsageError} from './usage-error.ts'
 import {USAGE, versions} from './usage.ts'
 
-type Command = (
-	files: readonly string[],
-	flags: Flags,
-) => Promise<number> | number
+interface Command {
+	readonly flags: readonly string[]
+	readonly run: (
+		files: readonly string[],
+		flags: Flags,
+	) => Promise<number> | number
+	readonly takesFiles: boolean
+}
 
 const COMMANDS = new Map<string, Command>([
-	['check', check],
-	['render', renderCommand],
-	['types', listTypes],
+	['check', {flags: RENDER_FLAGS, run: check, takesFiles: true}],
+	[
+		'render',
+		{
+			flags: [...RENDER_FLAGS, ...OUTPUT_FLAGS],
+			run: renderCommand,
+			takesFiles: true,
+		},
+	],
+	['types', {flags: [], run: listTypes, takesFiles: false}],
 ])
 
 async function printVersion(): Promise<number> {
@@ -32,11 +44,15 @@ function runCommand(
 	files: readonly string[],
 	flags: Flags,
 ): Promise<number> | number {
-	const run = COMMANDS.get(command)
-	if (run === undefined) {
+	const spec = COMMANDS.get(command)
+	if (spec === undefined) {
 		throw new UsageError(`unknown command "${command}"`)
 	}
-	return run(files, flags)
+	if (!spec.takesFiles && files.length > 0) {
+		throw new UsageError(`"${command}" does not take files`)
+	}
+	assertFlags(command, spec.flags, flags)
+	return spec.run(files, flags)
 }
 
 async function main(args: readonly string[]): Promise<number> {

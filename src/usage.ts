@@ -14,18 +14,19 @@ Inputs:
   .md .markdown        Every \`\`\`mermaid code block
   -  (or no files)     One diagram from stdin; render writes the SVG to stdout
 
-Output:
-  -o, --out-dir <dir>  Write SVGs here (default: next to each input)
+Output options (render only):
+  -o, --out-dir <dir>  Write SVGs here (default: next to each input); not with stdin
                        a.mmd -> a.svg; README.md -> README-1.svg, README-2.svg, ...
   --theme <name>       Embed a color theme: light, dark, or auto (follows the
                        viewer's color scheme). Default: Pele's unthemed output
   --css <file>         Embed CSS in each SVG, after the theme. Set --pele-*
                        variables here, see https://pele.run/theming
 
-Pele render options:
+Pele render options (check and render):
   --max-width <px>             Available width; narrow widths rearrange the layout
-  --no-auto-direction          Keep the source direction below the breakpoint
-  --direction-breakpoint <px>  Width below which layouts may turn vertical (640)
+  --no-auto-direction          Keep the source direction (needs --max-width)
+  --direction-breakpoint <px>  Width below which layouts may turn vertical (640;
+                               needs --max-width, not with --no-auto-direction)
   --no-responsive              Fixed pixel size instead of shrinking to fit
   --font-family <font>         Label font (sans-serif)
   --font-family-mono <font>    Monospace label font (monospace)
@@ -37,9 +38,10 @@ Pele render options:
   --max-edges <n>              Max flowchart and agentflow edges (5000)
   --no-links                   Drop links
   --no-images                  Drop images
-  --link-schemes <list>        Allowed link schemes (http,https,mailto,tel)
-  --image-schemes <list>       Allowed image schemes (http,https)
-  --link-rel <value>           rel attribute of links (noopener)
+  --link-schemes <list>        Allowed link schemes (http,https,mailto,tel;
+                               not with --no-links)
+  --image-schemes <list>       Allowed image schemes (http,https; not with --no-images)
+  --link-rel <value>           rel attribute of links (noopener; not with --no-links)
 
   -h, --help                   Show this help
   -v, --version                Show the pele-cli and Pele versions

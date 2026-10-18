@@ -67,6 +67,15 @@ Each flag maps to a Pele [`RenderOptions`](https://pele.run/api#renderoptions) f
 
 Outside a browser, Pele estimates label widths from a built-in width table instead of measuring the real font ([Text measurement](https://pele.run/api#text-measurement)). Labels in an unusually wide or narrow font may not fit their shapes exactly.
 
+### Flags that do not go together
+
+A flag that would have no effect is an error (exit code 2), so a typo or a forgotten flag does not pass silently:
+
+- `check` does not use `--out-dir`, `--theme`, or `--css`. `types` takes no files and no flags.
+- `--no-links` with `--link-schemes` or `--link-rel`, `--no-images` with `--image-schemes`, and `--no-auto-direction` with `--direction-breakpoint`: Pele ignores those settings while the feature is off.
+- `--direction-breakpoint` and `--[no-]auto-direction` need `--max-width`: Pele only rearranges a layout to fit a width.
+- `-` (stdin) cannot be combined with files or `--out-dir`.
+
 ## Development
 
 Needs Node 22.4 or later. The Nix flake provides Node and pnpm.
