@@ -24,7 +24,8 @@
 		"format": "oxfmt",
 		"format:check": "oxfmt --check",
 		"test": "node --test 'test/**/*.test.ts'",
-		"check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test",
+		"test:e2e": "node --test --test-global-setup=e2e/global-setup.ts 'e2e/**/*.test.ts'",
+		"check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test && pnpm run test:e2e",
 		"prepublishOnly": "pnpm run check && pnpm run build"
 	},
 	"dependencies": {

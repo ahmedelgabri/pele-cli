@@ -83,8 +83,11 @@ Needs Node 22.4 or later. The Nix flake provides Node and pnpm.
 ```sh
 pnpm install
 node src/cli.ts --help   # runs the TypeScript source directly
-pnpm run check           # tsc, oxlint (type-aware), oxfmt --check, tests
+pnpm run check           # tsc, oxlint (type-aware), oxfmt --check, tests, e2e tests
 pnpm test                # unit and CLI tests against src/
+pnpm run test:e2e        # builds, packs, installs the tarball, and tests the installed `pele`
 pnpm run format          # oxfmt
 pnpm run build           # compiles to dist/
 ```
+
+The e2e theme tests open the SVGs in a headless Chromium-based browser and check the computed colors. They look for Helium, Google Chrome, or Chromium in the usual places; set `PELE_E2E_BROWSER` to a browser binary to choose one. Without a browser they are skipped, and the test output says so.

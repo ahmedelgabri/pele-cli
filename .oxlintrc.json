@@ -63,11 +63,16 @@
 	"overrides": [
 		{
 			// Sync fs keeps fixtures simple, and tests import ../src.
-			"files": ["test/**/*.ts"],
+			"files": ["test/**/*.ts", "e2e/**/*.ts"],
 			"rules": {
 				"node/no-sync": "off",
 				"import/no-relative-parent-imports": "off"
 			}
+		},
+		{
+			// PELE_E2E_BROWSER points the theme tests at a browser, for example in CI.
+			"files": ["e2e/themes.test.ts"],
+			"rules": {"node/no-process-env": "off"}
 		}
 	],
 	"ignorePatterns": ["dist/"]
