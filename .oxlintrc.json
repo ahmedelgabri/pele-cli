@@ -1,0 +1,74 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": [
+		"eslint",
+		"typescript",
+		"unicorn",
+		"oxc",
+		"import",
+		"node",
+		"promise",
+		"jsdoc"
+	],
+	"env": {"node": true, "es2024": true},
+	"categories": {
+		"correctness": "error",
+		"suspicious": "error",
+		"pedantic": "error",
+		"perf": "error",
+		// Style is oxfmt's job.
+		"style": "off",
+		"restriction": "error"
+	},
+	"options": {
+		"typeAware": true,
+		"denyWarnings": true,
+		"reportUnusedDisableDirectives": "error"
+	},
+	"rules": {
+		// For code that must run on ES5 runtimes; this package targets Node 22.
+		"oxc/no-async-await": "off",
+		"oxc/no-optional-chaining": "off",
+		"oxc/no-rest-spread-properties": "off",
+
+		// This is a Node CLI with an ESM entry point.
+		"node/no-top-level-await": "off",
+
+		// exactOptionalPropertyTypes and strict-boolean-expressions need explicit undefined checks.
+		"eslint/no-undefined": "off",
+
+		// TypeScript signatures carry the types; JSDoc copies would drift.
+		"jsdoc/require-param-type": "off",
+		"jsdoc/require-returns-type": "off",
+
+		// promise-function-async + require-await need `return await` in async wrappers,
+		// which the default "in-try-catch" mode forbids. It also keeps the caller in stack traces.
+		"typescript/return-await": ["error", "always"],
+
+		// Callback parameters take the caller's types (Array#map, Object.entries tuples).
+		"typescript/prefer-readonly-parameter-types": [
+			"error",
+			{"ignoreInferredTypes": true}
+		],
+
+		"typescript/no-floating-promises": [
+			"error",
+			{
+				"allowForKnownSafeCalls": [
+					{"from": "package", "package": "node:test", "name": ["test"]}
+				]
+			}
+		]
+	},
+	"overrides": [
+		{
+			// Sync fs keeps fixtures simple, and tests import ../src.
+			"files": ["test/**/*.ts"],
+			"rules": {
+				"node/no-sync": "off",
+				"import/no-relative-parent-imports": "off"
+			}
+		}
+	],
+	"ignorePatterns": ["dist/"]
+}

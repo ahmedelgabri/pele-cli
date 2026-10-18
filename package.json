@@ -20,14 +20,21 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
 		"typecheck": "tsc",
+		"lint": "oxlint",
+		"format": "oxfmt",
+		"format:check": "oxfmt --check",
 		"test": "node --test 'test/**/*.test.ts'",
-		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run build"
+		"check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test",
+		"prepublishOnly": "pnpm run check && pnpm run build"
 	},
 	"dependencies": {
 		"pele": "1.6.0"
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
+		"oxfmt": "0.72.0",
+		"oxlint": "1.87.0",
+		"oxlint-tsgolint": "7.0.2004",
 		"typescript": "7.0.2"
 	},
 	"engines": {

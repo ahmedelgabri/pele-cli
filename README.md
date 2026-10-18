@@ -74,6 +74,8 @@ Needs Node 22.4 or later. The Nix flake provides Node and pnpm.
 ```sh
 pnpm install
 node src/cli.ts --help   # runs the TypeScript source directly
+pnpm run check           # tsc, oxlint (type-aware), oxfmt --check, tests
 pnpm test                # unit and CLI tests against src/
+pnpm run format          # oxfmt
 pnpm run build           # compiles to dist/
 ```
