@@ -9,7 +9,16 @@
 		"pele",
 		"svg"
 	],
+	"homepage": "https://github.com/ahmedelgabri/pele-cli#readme",
+	"bugs": {
+		"url": "https://github.com/ahmedelgabri/pele-cli/issues"
+	},
 	"license": "MIT",
+	"author": "Ahmed El Gabri",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ahmedelgabri/pele-cli.git"
+	},
 	"bin": {
 		"pele": "dist/cli.js"
 	},
