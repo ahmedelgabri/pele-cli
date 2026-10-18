@@ -7,5 +7,5 @@
 	"printWidth": 80,
 	"trailingComma": "all",
 	"sortImports": {},
-	"ignorePatterns": ["pnpm-lock.yaml", "dist/"]
+	"ignorePatterns": ["pnpm-lock.yaml", "dist/", "e2e/fixtures/"]
 }

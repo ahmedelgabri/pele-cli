@@ -1,0 +1,35 @@
+{
+	"inputs": [
+		"empty.mmd",
+		"semantic.mmd",
+		"syntax.mmd",
+		"unsupported.mmd",
+		"valid.mmd"
+	],
+	"summary": "4 invalid diagrams of 5",
+	"svgs": [
+		"valid.svg"
+	],
+	"errors": [
+		{
+			"at": "empty.mmd",
+			"code": "unsupported-diagram",
+			"type": null
+		},
+		{
+			"at": "semantic.mmd",
+			"code": "semantic",
+			"type": "gantt"
+		},
+		{
+			"at": "syntax.mmd:3:11",
+			"code": "syntax",
+			"type": "sequence"
+		},
+		{
+			"at": "unsupported.mmd",
+			"code": "unsupported-diagram",
+			"type": null
+		}
+	]
+}

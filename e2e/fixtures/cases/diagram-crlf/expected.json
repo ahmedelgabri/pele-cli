@@ -1,0 +1,14 @@
+{
+	"inputs": [
+		"windows.mmd"
+	],
+	"summary": "1 invalid diagram of 1",
+	"svgs": [],
+	"errors": [
+		{
+			"at": "windows.mmd:3:11",
+			"code": "syntax",
+			"type": "sequence"
+		}
+	]
+}

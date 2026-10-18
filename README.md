@@ -91,3 +91,7 @@ pnpm run build           # compiles to dist/
 ```
 
 The e2e theme tests open the SVGs in a headless Chromium-based browser and check the computed colors. They look for Helium, Google Chrome, or Chromium in the usual places; set `PELE_E2E_BROWSER` to a browser binary to choose one. Without a browser they are skipped, and the test output says so.
+
+### Fixtures
+
+`e2e/fixtures/cases/<case>/` holds real input files and an `expected.json` that lists the inputs, the last line of `check`, the SVGs `render` writes, and every error (`file:line:col`, Pele error code, diagram type). Each case runs through both `check` and `render`. `e2e/fixtures/types/` has one `.mmd` per Pele diagram type, taken from https://pele.run/examples, and a test fails if `pele types` lists a type with no fixture. To add a case, add a folder with inputs and an `expected.json`. Fixtures are not formatted by oxfmt, and `.gitattributes` keeps their bytes (CRLF, BOM) as they are.

@@ -1,0 +1,2 @@
+# Fixtures are compared byte for byte (CRLF line endings, a UTF-8 BOM).
+e2e/fixtures/** -text

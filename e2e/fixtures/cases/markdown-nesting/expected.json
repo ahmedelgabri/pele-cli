@@ -1,0 +1,11 @@
+{
+	"inputs": [
+		"guide.md"
+	],
+	"summary": "2 diagrams valid",
+	"svgs": [
+		"guide-1.svg",
+		"guide-2.svg"
+	],
+	"errors": []
+}

@@ -1,0 +1,25 @@
+{
+	"inputs": [
+		"flow.mmd",
+		"sequence.mermaid",
+		"UPPER.MMD",
+		"bom.mmd",
+		"meta.mmd"
+	],
+	"summary": "5 diagrams valid",
+	"svgs": [
+		"flow.svg",
+		"sequence.svg",
+		"UPPER.svg",
+		"bom.svg",
+		"meta.svg"
+	],
+	"errors": [],
+	"svgContains": {
+		"meta.svg": [
+			"<title id=\"pele-title\">Release</title>",
+			"<desc id=\"pele-desc\">From draft to done</desc>",
+			"Release flow"
+		]
+	}
+}

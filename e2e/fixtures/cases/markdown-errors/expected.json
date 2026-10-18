@@ -1,0 +1,32 @@
+{
+	"inputs": [
+		"errors.md"
+	],
+	"summary": "4 invalid diagrams of 6",
+	"svgs": [
+		"errors-2.svg",
+		"errors-6.svg"
+	],
+	"errors": [
+		{
+			"at": "errors.md:6:11",
+			"code": "syntax",
+			"type": "sequence"
+		},
+		{
+			"at": "errors.md:14",
+			"code": "unsupported-diagram",
+			"type": null
+		},
+		{
+			"at": "errors.md:17",
+			"code": "unsupported-diagram",
+			"type": null
+		},
+		{
+			"at": "errors.md:25:1",
+			"code": "syntax",
+			"type": "flowchart"
+		}
+	]
+}

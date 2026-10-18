@@ -1,0 +1,16 @@
+{
+	"inputs": [
+		"windows.md"
+	],
+	"summary": "1 invalid diagram of 2",
+	"svgs": [
+		"windows-2.svg"
+	],
+	"errors": [
+		{
+			"at": "windows.md:6:11",
+			"code": "syntax",
+			"type": "sequence"
+		}
+	]
+}
