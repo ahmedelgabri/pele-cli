@@ -1,0 +1,37 @@
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # npm trusted publishing: npm exchanges the GitHub OIDC token for a
+      # short-lived publish token and adds provenance, so no NPM_TOKEN secret.
+      id-token: write
+    env:
+      PELE_E2E_BROWSER: /usr/bin/google-chrome
+    defaults:
+      run:
+        shell: nix develop --command bash -euo pipefail {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - run: pnpm install --frozen-lockfile
+      - name: Check that the tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+      # prepublishOnly runs `pnpm run check` and `pnpm run build` first.
+      - run: npm publish
