@@ -184,19 +184,27 @@ test('every type `pele types` lists has a fixture', () => {
 	)
 })
 
-for (const file of readdirSync(TYPES).toSorted()) {
+// One CLI run renders every type, instead of one process per type; each type
+// still gets its own test below.
+const TYPE_FILES = readdirSync(TYPES).toSorted()
+const typesDir = workspace({})
+cpSync(TYPES, typesDir, {recursive: true})
+const typesRun = pele(['render', ...TYPE_FILES], {cwd: typesDir})
+
+test('renders every diagram type in one run', () => {
+	assert.equal(typesRun.stderr, '')
+	assert.equal(typesRun.code, 0)
+	assert.equal(
+		typesRun.stdout,
+		TYPE_FILES.map((file) => `${path.basename(file, '.mmd')}.svg\n`).join(''),
+	)
+})
+
+for (const file of TYPE_FILES) {
 	const type = path.basename(file, '.mmd')
 
 	test(`renders a ${type} diagram`, () => {
-		const cwd = workspace({})
-		cpSync(path.join(TYPES, file), path.join(cwd, file))
-
-		const {code, stdout, stderr} = pele(['render', file], {cwd})
-
-		assert.equal(stderr, '')
-		assert.equal(code, 0)
-		assert.equal(stdout, `${type}.svg\n`)
-		const svg = readFileSync(path.join(cwd, `${type}.svg`), 'utf8')
+		const svg = readFileSync(path.join(typesDir, `${type}.svg`), 'utf8')
 		assert.match(svg, new RegExp(`^<svg [^>]*class="pele pele-${type}"`, 'u'))
 	})
 }

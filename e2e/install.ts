@@ -1,8 +1,9 @@
+import assert from 'node:assert/strict'
 import {readFileSync, realpathSync} from 'node:fs'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 
-import {cliRunner} from '../test/helpers.ts'
+import {cliRunner, workspace} from '../test/helpers.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -13,6 +14,27 @@ const INSTALL_DIR = path.join(ROOT, 'node_modules', '.cache', 'pele-cli-e2e')
 const PELE_BIN = path.join(INSTALL_DIR, 'node_modules', '.bin', 'pele')
 
 const pele = cliRunner(PELE_BIN)
+
+/**
+ * Renders stdin with the installed CLI and asserts that it succeeded.
+ * @param source - Diagram source.
+ * @param flags - Flags after `render`.
+ * @param files - Files the flags refer to, such as a `--css` file.
+ * @returns The SVG.
+ */
+function renderStdin(
+	source: string,
+	flags: readonly string[] = [],
+	files: Readonly<Record<string, string>> = {},
+): string {
+	const {code, stdout, stderr} = pele(['render', ...flags], {
+		cwd: workspace(files),
+		input: source,
+	})
+	assert.equal(stderr, '', `pele render ${flags.join(' ')}`)
+	assert.equal(code, 0)
+	return stdout
+}
 
 /**
  * Reads the version of a package as installed next to pele-cli.
@@ -37,4 +59,4 @@ function installedVersion(name: string): string {
 	throw new Error(`${name} has no version`)
 }
 
-export {INSTALL_DIR, installedVersion, pele, PELE_BIN, ROOT}
+export {INSTALL_DIR, installedVersion, pele, PELE_BIN, renderStdin, ROOT}

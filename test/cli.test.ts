@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import {readdirSync, readFileSync} from 'node:fs'
 import path from 'node:path'
 import {test} from 'node:test'
-import {fileURLToPath} from 'node:url'
 
-import {cliRunner, viewBoxSize, WIDE_FLOWCHART, workspace} from './helpers.ts'
-
-const pele = cliRunner(process.execPath, [
-	fileURLToPath(new URL('../src/cli.ts', import.meta.url)),
-])
+import {
+	peleFromSource as pele,
+	viewBoxSize,
+	WIDE_FLOWCHART,
+	workspace,
+} from './helpers.ts'
 
 test('check reports Pele errors at their line and column in the Markdown file', () => {
 	const cwd = workspace({

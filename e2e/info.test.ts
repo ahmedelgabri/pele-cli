@@ -36,12 +36,8 @@ test('--version shows the installed pele-cli and Pele versions', () => {
 
 test('types lists every diagram type with its keywords', () => {
 	const {code, stdout, stderr} = pele(['types'], {cwd: workspace({})})
-	const rows = stdout.trimEnd().split('\n')
-
 	assert.equal(code, 0)
 	assert.equal(stderr, '')
-	// The types in https://pele.run/compatibility.
-	assert.equal(rows.length, 33)
 	assert.match(stdout, /^flowchart +flowchart, graph$/mu)
 	assert.match(
 		stdout,

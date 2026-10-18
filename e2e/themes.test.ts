@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
-import {existsSync, mkdtempSync, writeFileSync} from 'node:fs'
-import {tmpdir} from 'node:os'
+import {existsSync} from 'node:fs'
 import path from 'node:path'
 import {test} from 'node:test'
 
 import {workspace} from '../test/helpers.ts'
-import {pele} from './install.ts'
+import {renderStdin} from './install.ts'
 
 type Scheme = 'dark' | 'light'
 
@@ -51,14 +50,9 @@ document.body.dataset.colors = JSON.stringify({
 const COLORS_ATTRIBUTE = /data-colors="(?<json>[^"]*)"/u
 
 function renderSvg(flags: readonly string[]): string {
-	const cwd = workspace({'brand.css': '.pele{--pele-surface:#ff0000}'})
-	const {code, stdout, stderr} = pele(['render', ...flags], {
-		cwd,
-		input: 'flowchart LR\n  A --> B\n',
+	return renderStdin('flowchart LR\n  A --> B\n', flags, {
+		'brand.css': '.pele{--pele-surface:#ff0000}',
 	})
-	assert.equal(stderr, '')
-	assert.equal(code, 0)
-	return stdout
 }
 
 function parseColors(json: string): Colors {
@@ -83,9 +77,10 @@ function parseColors(json: string): Colors {
  * @returns The computed background color and node fill.
  */
 function computedColors(svg: string, scheme: Scheme): Colors {
-	const dir = mkdtempSync(path.join(tmpdir(), 'pele-cli-browser-'))
+	const dir = workspace({
+		'page.html': `<!doctype html><body>${svg}${PAGE_SCRIPT}</body>`,
+	})
 	const page = path.join(dir, 'page.html')
-	writeFileSync(page, `<!doctype html><body>${svg}${PAGE_SCRIPT}</body>`)
 	const dom = execFileSync(
 		BROWSER ?? '',
 		[

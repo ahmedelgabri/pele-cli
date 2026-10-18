@@ -2,19 +2,9 @@ import assert from 'node:assert/strict'
 import {test} from 'node:test'
 
 import {viewBoxSize, WIDE_FLOWCHART, workspace} from '../test/helpers.ts'
-import {pele} from './install.ts'
+import {pele, renderStdin as render} from './install.ts'
 
 const FLOWCHART = 'flowchart LR\n  A --> B\n'
-
-function render(source: string, flags: readonly string[] = []): string {
-	const {code, stdout, stderr} = pele(['render', ...flags], {
-		cwd: workspace({}),
-		input: source,
-	})
-	assert.equal(stderr, '', `pele render ${flags.join(' ')}`)
-	assert.equal(code, 0)
-	return stdout
-}
 
 test('font flags set the label fonts and size', () => {
 	const svg = render(FLOWCHART, [

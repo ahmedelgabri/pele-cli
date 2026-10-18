@@ -2,6 +2,7 @@ import {spawnSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
+import {fileURLToPath} from 'node:url'
 
 interface Result {
 	readonly code: number | null
@@ -37,6 +38,11 @@ function cliRunner(command: string, prefix: readonly string[] = []): Runner {
 	}
 }
 
+// Runs the CLI from source through Node's type stripping.
+const peleFromSource = cliRunner(process.execPath, [
+	fileURLToPath(new URL('../src/cli.ts', import.meta.url)),
+])
+
 function viewBoxSize(svg: string): {height: number; width: number} {
 	const groups = VIEWBOX_SIZE.exec(svg)?.groups
 	return {height: Number(groups?.['height']), width: Number(groups?.['width'])}
@@ -57,5 +63,4 @@ function workspace(files: Readonly<Record<string, string>>): string {
 	return dir
 }
 
-export type {Result, Runner}
-export {cliRunner, viewBoxSize, WIDE_FLOWCHART, workspace}
+export {cliRunner, peleFromSource, viewBoxSize, WIDE_FLOWCHART, workspace}

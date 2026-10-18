@@ -1,13 +1,8 @@
 import assert from 'node:assert/strict'
 import {readdirSync} from 'node:fs'
 import {test} from 'node:test'
-import {fileURLToPath} from 'node:url'
 
-import {cliRunner, WIDE_FLOWCHART, workspace} from './helpers.ts'
-
-const pele = cliRunner(process.execPath, [
-	fileURLToPath(new URL('../src/cli.ts', import.meta.url)),
-])
+import {peleFromSource as pele, WIDE_FLOWCHART, workspace} from './helpers.ts'
 
 const REJECTED: ReadonlyArray<readonly [readonly string[], string]> = [
 	// Flags a command does not use.
