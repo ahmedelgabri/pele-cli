@@ -41,7 +41,7 @@
 		"pele": "1.6.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.19.2",
+		"@types/node": "^26.6.5",
 		"oxfmt": "0.72.0",
 		"oxlint": "1.87.0",
 		"oxlint-tsgolint": "7.0.2004",
