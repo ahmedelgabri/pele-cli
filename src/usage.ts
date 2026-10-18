@@ -21,6 +21,9 @@ Output options (render only):
                        viewer's color scheme). Default: Pele's unthemed output
   --css <file>         Embed CSS in each SVG, after the theme. Set --pele-*
                        variables here, see https://pele.run/theming
+  --markdown-out <file>  Write a copy of the one Markdown input with each
+                       rendered diagram replaced by its image, and save each
+                       diagram's source as .mmd next to its SVG
 
 Reporting (check and render):
   --format <name>      text, json, or github (annotations for GitHub Actions).

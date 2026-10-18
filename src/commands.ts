@@ -1,12 +1,11 @@
-import {mkdir, writeFile} from 'node:fs/promises'
-import path from 'node:path'
-
 import {PeleError, render} from 'pele'
 
 import {embeddedCss, renderOptions, reportFormat} from './args.ts'
 import type {Flags} from './args.ts'
 import {KEYWORDS} from './diagram-types.ts'
 import {ExitCode} from './exit-code.ts'
+import {assertDistinctOutputs, markdownOut, writeOutputs} from './outputs.ts'
+import type {MarkdownOut, Rendered} from './outputs.ts'
 import {report, toProblem} from './report.ts'
 import type {Format, Problem} from './report.ts'
 import {readDiagrams, readsStdin, readStdin} from './sources.ts'
@@ -14,12 +13,7 @@ import type {Diagram} from './sources.ts'
 import {embedStyle} from './theme.ts'
 import {UsageError} from './usage-error.ts'
 
-type Renderer = (source: string) => string
-
-interface Rendered {
-	readonly diagram: Diagram
-	readonly svg: string
-}
+type Renderer = (source: string) => Omit<Rendered, 'diagram'>
 
 interface Results {
 	readonly problems: readonly Problem[]
@@ -53,7 +47,7 @@ function renderEach(
 	const problems: Problem[] = []
 	for (const diagram of diagrams) {
 		try {
-			rendered.push({diagram, svg: renderSvg(diagram.source)})
+			rendered.push({diagram, ...renderSvg(diagram.source)})
 		} catch (error) {
 			if (!(error instanceof PeleError)) {
 				throw error
@@ -66,37 +60,14 @@ function renderEach(
 
 function createRenderer(flags: Flags, css: string): Renderer {
 	const options = renderOptions(flags)
-	if (css === '') {
-		return (source) => render(source, options).svg
+	return (source) => {
+		const {svg, type} = render(source, options)
+		return {svg: css === '' ? svg : embedStyle(svg, css), type}
 	}
-	return (source) => embedStyle(render(source, options).svg, css)
 }
 
 function exitCode(problems: readonly Problem[]): number {
 	return problems.length === 0 ? ExitCode.ok : ExitCode.invalid
-}
-
-function outputPath(diagram: Diagram, outDir: string | undefined): string {
-	const name = path.basename(diagram.file, path.extname(diagram.file))
-	const suffix = diagram.index === undefined ? '' : `-${diagram.index}`
-	return path.join(outDir ?? path.dirname(diagram.file), `${name}${suffix}.svg`)
-}
-
-function assertDistinctOutputs(
-	diagrams: readonly Diagram[],
-	outDir: string | undefined,
-): void {
-	const writers = new Map<string, string>()
-	for (const diagram of diagrams) {
-		const target = outputPath(diagram, outDir)
-		const other = writers.get(target)
-		if (other !== undefined) {
-			throw new UsageError(
-				`${other} and ${diagram.file} would both write ${target}`,
-			)
-		}
-		writers.set(target, diagram.file)
-	}
 }
 
 function renderToStdout(
@@ -117,22 +88,11 @@ async function renderToFiles(
 	renderSvg: Renderer,
 	outDir: string | undefined,
 	format: Format,
+	markdown: MarkdownOut | undefined,
 ): Promise<number> {
 	assertDistinctOutputs(diagrams, outDir)
 	const {problems, rendered} = renderEach(diagrams, renderSvg)
-	if (outDir !== undefined) {
-		await mkdir(outDir, {recursive: true})
-	}
-	const outputs = rendered.map(({diagram, svg}) => ({
-		svg,
-		target: outputPath(diagram, outDir),
-	}))
-	await Promise.all(
-		outputs.map(async ({svg, target}) => {
-			await writeFile(target, `${svg}\n`)
-		}),
-	)
-	const written = outputs.map(({target}) => target)
+	const written = await writeOutputs(rendered, outDir, markdown)
 	report(format, {diagrams: diagrams.length, problems, written}, false)
 	return exitCode(problems)
 }
@@ -161,12 +121,13 @@ async function renderCommand(
 			'--format json cannot be used with stdin: the SVG goes to stdout',
 		)
 	}
+	const markdown = markdownOut(files, fromStdin, flags['markdown-out'])
 	const renderSvg = createRenderer(flags, await embeddedCss(flags))
 	const diagrams = await readInputs(files, fromStdin)
 	if (fromStdin) {
 		return renderToStdout(diagrams, renderSvg, format)
 	}
-	return await renderToFiles(diagrams, renderSvg, outDir, format)
+	return await renderToFiles(diagrams, renderSvg, outDir, format, markdown)
 }
 
 function listTypes(): number {

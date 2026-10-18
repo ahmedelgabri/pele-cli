@@ -32,6 +32,7 @@ const RENDER_OPTIONS = {
 // What render writes, and how.
 const OUTPUT_OPTIONS = {
 	css: {type: 'string'},
+	'markdown-out': {type: 'string'},
 	'out-dir': {short: 'o', type: 'string'},
 	theme: {type: 'string'},
 } as const

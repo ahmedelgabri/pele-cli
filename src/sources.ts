@@ -4,6 +4,14 @@ import {text} from 'node:stream/consumers'
 
 import {describeError, UsageError} from './usage-error.ts'
 
+/** Where a diagram's code block sits in its Markdown file. */
+interface Block {
+	/** Index of the closing fence line, or the line count when the block is unclosed. */
+	readonly end: number
+	/** Spaces before the opening fence, for example inside a list item. */
+	readonly indent: string
+}
+
 interface Diagram {
 	/** Display path, or `<stdin>`. */
 	readonly file: string
@@ -11,21 +19,26 @@ interface Diagram {
 	readonly lineOffset: number
 	/** 1-based position of the block in a Markdown file. */
 	readonly index?: number
+	/** Set for diagrams from Markdown. */
+	readonly block?: Block
 	readonly source: string
 }
 
-type Fence = Pick<Diagram, 'lineOffset' | 'source'>
+interface Fence {
+	readonly block: Block
+	readonly lineOffset: number
+	readonly source: string
+}
 
-interface CodeBlock {
-	/** Index of the closing fence line, or the line count when the block is unclosed. */
-	readonly end: number
+interface CodeBlock extends Block {
 	readonly language: string
 	readonly source: string
 }
 
 interface OpeningFence {
 	readonly closing: RegExp
-	readonly indent: RegExp
+	readonly indent: string
+	readonly indentPattern: RegExp
 	readonly language: string
 }
 
@@ -84,7 +97,8 @@ function parseOpeningFence(line: string): OpeningFence | undefined {
 			`^ {0,3}${fence.charAt(0)}{${fence.length},}\\s*$`,
 			'u',
 		),
-		indent: new RegExp(`^ {0,${indent.length}}`, 'u'),
+		indent,
+		indentPattern: new RegExp(`^ {0,${indent.length}}`, 'u'),
 		language: info.trim().split(/\s+/u).at(0)?.toLowerCase() ?? '',
 	}
 }
@@ -103,9 +117,9 @@ function readCodeBlock(
 	const end = closing === -1 ? lines.length : closing
 	const source = lines
 		.slice(start + 1, end)
-		.map((line) => line.replace(opening.indent, ''))
+		.map((line) => line.replace(opening.indentPattern, ''))
 		.join('\n')
-	return {end, language: opening.language, source}
+	return {end, indent: opening.indent, language: opening.language, source}
 }
 
 /**
@@ -121,18 +135,27 @@ function extractFences(markdown: string): Fence[] {
 	while (index < lines.length) {
 		const block = readCodeBlock(lines, index)
 		if (block !== undefined && block.language === FENCE_LANGUAGE) {
-			fences.push({lineOffset: index + 1, source: block.source})
+			fences.push({
+				block: {end: block.end, indent: block.indent},
+				lineOffset: index + 1,
+				source: block.source,
+			})
 		}
 		index = block === undefined ? index + 1 : block.end + 1
 	}
 	return fences
 }
 
+function isMarkdown(file: string): boolean {
+	return MARKDOWN_EXTENSIONS.has(path.extname(file).toLowerCase())
+}
+
 async function readDiagrams(file: string): Promise<Diagram[]> {
 	const extension = path.extname(file).toLowerCase()
-	if (MARKDOWN_EXTENSIONS.has(extension)) {
+	if (isMarkdown(file)) {
 		const fences = extractFences(await readInputFile(file))
 		return fences.map((fence, position) => ({
+			block: fence.block,
 			file,
 			index: position + 1,
 			lineOffset: fence.lineOffset,
@@ -146,9 +169,10 @@ async function readDiagrams(file: string): Promise<Diagram[]> {
 	throw new UsageError(`${file}: unsupported file type (expected ${supported})`)
 }
 
-export type {Diagram}
+export type {Block, Diagram}
 export {
 	extractFences,
+	isMarkdown,
 	readDiagrams,
 	readInputFile,
 	readsStdin,

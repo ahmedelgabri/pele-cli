@@ -55,6 +55,26 @@ const REJECTED: ReadonlyArray<readonly [readonly string[], string]> = [
 		['render', '--format', 'json'],
 		'--format json cannot be used with stdin: the SVG goes to stdout',
 	],
+	[
+		['check', '--markdown-out', 'out.md'],
+		'"check" does not use --markdown-out',
+	],
+	[
+		['render', '--markdown-out', 'out.md'],
+		'--markdown-out needs exactly one Markdown input file',
+	],
+	[
+		['render', 'a.mmd', '--markdown-out', 'out.md'],
+		'--markdown-out needs exactly one Markdown input file',
+	],
+	[
+		['render', 'doc.md', 'a.mmd', '--markdown-out', 'out.md'],
+		'--markdown-out needs exactly one Markdown input file',
+	],
+	[
+		['render', 'doc.md', '--markdown-out', './doc.md'],
+		'--markdown-out must be a new file: replacing the input would lose the diagram source',
+	],
 	// Output targets.
 	[['render', '-', 'a.mmd'], 'stdin (-) cannot be combined with files'],
 	[['render', '-', '-o', 'out'], '--out-dir cannot be used with stdin'],

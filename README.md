@@ -55,6 +55,19 @@ Pele's SVG uses [CSS variables](https://pele.run/theming) and has no background,
 - `--theme auto` embeds both palettes and follows the viewer's `prefers-color-scheme`.
 - `--css <file>` embeds your own CSS after the theme, for example `.pele { --pele-accent: #d14d41 }`.
 
+## Markdown with images
+
+`--markdown-out <file>` writes a copy of a Markdown file where each diagram is replaced by its rendered image. This is for places that can't render Mermaid, such as a static site or a package README:
+
+```sh
+pele render docs/guide.md -o assets --markdown-out site/guide.md
+```
+
+- Each rendered ` ```mermaid ` block becomes `![<type> diagram](<path to svg>)`, with the path relative to the new file and the block's indentation kept.
+- Each diagram's source is saved as `.mmd` next to its SVG (`assets/guide-1.mmd`), so it stays editable.
+- Blocks Pele rejects are reported and stay as code in the copy. Other code blocks and text are unchanged, and so are the line endings.
+- It takes exactly one Markdown input, and the output must be a new file, so the original with the diagram source is never overwritten.
+
 ## Pele render options
 
 Each flag maps to a Pele [`RenderOptions`](https://pele.run/api#renderoptions) field. Flags you leave out use Pele's defaults.
