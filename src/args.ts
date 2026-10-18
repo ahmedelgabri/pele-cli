@@ -3,17 +3,16 @@ import {parseArgs} from 'node:util'
 import type {RenderOptions} from 'pele'
 
 import {readInputFile} from './sources.ts'
-import {assertEmbeddable, isTheme, THEMES, themeCss} from './theme.ts'
+import {assertEmbeddable, themeCss} from './theme.ts'
 import {describeError, UsageError} from './usage-error.ts'
 
-const OPTIONS = {
+// Pele's RenderOptions, used by check and render.
+const RENDER_OPTIONS = {
 	'auto-direction': {type: 'boolean'},
-	css: {type: 'string'},
 	'direction-breakpoint': {type: 'string'},
 	'font-family': {type: 'string'},
 	'font-family-mono': {type: 'string'},
 	'font-size': {type: 'string'},
-	help: {short: 'h', type: 'boolean'},
 	'image-schemes': {type: 'string'},
 	images: {type: 'boolean'},
 	limit: {type: 'string'},
@@ -23,13 +22,27 @@ const OPTIONS = {
 	'max-edges': {type: 'string'},
 	'max-width': {type: 'string'},
 	now: {type: 'string'},
-	'out-dir': {short: 'o', type: 'string'},
 	'output-limit': {type: 'string'},
 	padding: {type: 'string'},
 	responsive: {type: 'boolean'},
+} as const
+
+// What render writes, and how.
+const OUTPUT_OPTIONS = {
+	css: {type: 'string'},
+	'out-dir': {short: 'o', type: 'string'},
 	theme: {type: 'string'},
+} as const
+
+const OPTIONS = {
+	...RENDER_OPTIONS,
+	...OUTPUT_OPTIONS,
+	help: {short: 'h', type: 'boolean'},
 	version: {short: 'v', type: 'boolean'},
 } as const
+
+const RENDER_FLAGS: readonly string[] = Object.keys(RENDER_OPTIONS)
+const OUTPUT_FLAGS: readonly string[] = Object.keys(OUTPUT_OPTIONS)
 
 const PARSE_CONFIG = {
 	allowNegative: true,
@@ -117,14 +130,6 @@ function renderOptions(flags: Flags): RenderOptions {
 	)
 }
 
-function themeCssFor(name: string): string {
-	if (!isTheme(name)) {
-		const names = THEMES.join(', ')
-		throw new UsageError(`--theme must be one of ${names}, got "${name}"`)
-	}
-	return themeCss(name)
-}
-
 async function customCss(file: string): Promise<string> {
 	const css = await readInputFile(file)
 	assertEmbeddable(css, file)
@@ -132,10 +137,16 @@ async function customCss(file: string): Promise<string> {
 }
 
 async function embeddedCss(flags: Flags): Promise<string> {
-	const theme = flags.theme === undefined ? '' : themeCssFor(flags.theme)
+	const theme = flags.theme === undefined ? '' : themeCss(flags.theme)
 	const custom = flags.css === undefined ? '' : await customCss(flags.css)
 	return theme + custom
 }
 
 export type {Flags}
-export {embeddedCss, parseCommandLine, renderOptions}
+export {
+	embeddedCss,
+	OUTPUT_FLAGS,
+	parseCommandLine,
+	RENDER_FLAGS,
+	renderOptions,
+}

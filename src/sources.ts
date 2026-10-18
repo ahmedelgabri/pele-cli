@@ -35,6 +35,28 @@ const MARKDOWN_EXTENSIONS = new Set(['.markdown', '.md'])
 const FENCE_LANGUAGE = 'mermaid'
 const OPENING_FENCE = /^(?<indent> {0,3})(?<fence>`{3,}|~{3,})(?<info>.*)$/u
 
+/**
+ * Decides from the arguments alone whether the input is stdin, so usage
+ * errors come before any reading.
+ * @param files - File arguments; none or a single `-` means stdin.
+ * @returns Whether to read stdin.
+ */
+function readsStdin(files: readonly string[]): boolean {
+	if (files.length === 0) {
+		if (process.stdin.isTTY) {
+			throw new UsageError('no input files')
+		}
+		return true
+	}
+	if (files.length === 1 && files[0] === '-') {
+		return true
+	}
+	if (files.includes('-')) {
+		throw new UsageError('stdin (-) cannot be combined with files')
+	}
+	return false
+}
+
 async function readStdin(): Promise<Diagram[]> {
 	return [{file: STDIN, lineOffset: 0, source: await text(process.stdin)}]
 }
@@ -125,4 +147,4 @@ async function readDiagrams(file: string): Promise<Diagram[]> {
 }
 
 export type {Diagram}
-export {extractFences, readDiagrams, readInputFile, readStdin, STDIN}
+export {extractFences, readDiagrams, readInputFile, readsStdin, readStdin}

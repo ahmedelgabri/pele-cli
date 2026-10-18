@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import {parseCommandLine} from './args.ts'
+import {OUTPUT_FLAGS, parseCommandLine, RENDER_FLAGS} from './args.ts'
 import type {Flags} from './args.ts'
 import {check, listTypes, renderCommand} from './commands.ts'
 import {ExitCode} from './exit-code.ts'
-import {assertFlags, OUTPUT_FLAGS, RENDER_FLAGS} from './flag-rules.ts'
+import {assertFlags} from './flag-rules.ts'
 import {UsageError} from './usage-error.ts'
 import {USAGE, versions} from './usage.ts'
 

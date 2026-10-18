@@ -5,9 +5,9 @@ import {PeleError, render} from 'pele'
 
 import {embeddedCss, renderOptions} from './args.ts'
 import type {Flags} from './args.ts'
-import {keywordsByType} from './diagram-types.ts'
+import {KEYWORDS} from './diagram-types.ts'
 import {ExitCode} from './exit-code.ts'
-import {readDiagrams, readStdin, STDIN} from './sources.ts'
+import {readDiagrams, readsStdin, readStdin} from './sources.ts'
 import type {Diagram} from './sources.ts'
 import {embedStyle} from './theme.ts'
 import {UsageError} from './usage-error.ts'
@@ -24,17 +24,12 @@ interface Results {
 	readonly rendered: readonly Rendered[]
 }
 
-async function readInputs(files: readonly string[]): Promise<Diagram[]> {
-	const fromStdin =
-		files.length === 0 || (files.length === 1 && files[0] === '-')
+async function readInputs(
+	files: readonly string[],
+	fromStdin: boolean,
+): Promise<Diagram[]> {
 	if (fromStdin) {
-		if (files.length === 0 && process.stdin.isTTY) {
-			throw new UsageError('no input files')
-		}
 		return await readStdin()
-	}
-	if (files.includes('-')) {
-		throw new UsageError('stdin (-) cannot be combined with files')
 	}
 	const perFile = await Promise.all(
 		files.map(async (file) => await readDiagrams(file)),
@@ -138,11 +133,7 @@ function assertDistinctOutputs(
 function renderToStdout(
 	diagrams: readonly Diagram[],
 	renderSvg: Renderer,
-	outDir: string | undefined,
 ): number {
-	if (outDir !== undefined) {
-		throw new UsageError('--out-dir cannot be used with stdin')
-	}
 	const {failed, rendered} = renderEach(diagrams, renderSvg)
 	for (const {svg} of rendered) {
 		process.stdout.write(`${svg}\n`)
@@ -177,7 +168,7 @@ async function renderToFiles(
 }
 
 async function check(files: readonly string[], flags: Flags): Promise<number> {
-	const diagrams = await readInputs(files)
+	const diagrams = await readInputs(files, readsStdin(files))
 	// Check renders rather than only parsing: layout and output limits fail at render time.
 	const {failed} = renderEach(diagrams, createRenderer(flags, ''))
 	process.stderr.write(
@@ -192,16 +183,21 @@ async function renderCommand(
 	files: readonly string[],
 	flags: Flags,
 ): Promise<number> {
-	const renderSvg = createRenderer(flags, await embeddedCss(flags))
-	const diagrams = await readInputs(files)
-	if (diagrams.at(0)?.file === STDIN) {
-		return renderToStdout(diagrams, renderSvg, flags['out-dir'])
+	const fromStdin = readsStdin(files)
+	const outDir = flags['out-dir']
+	if (fromStdin && outDir !== undefined) {
+		throw new UsageError('--out-dir cannot be used with stdin')
 	}
-	return await renderToFiles(diagrams, renderSvg, flags['out-dir'])
+	const renderSvg = createRenderer(flags, await embeddedCss(flags))
+	const diagrams = await readInputs(files, fromStdin)
+	if (fromStdin) {
+		return renderToStdout(diagrams, renderSvg)
+	}
+	return await renderToFiles(diagrams, renderSvg, outDir)
 }
 
 function listTypes(): number {
-	const rows = [...keywordsByType()]
+	const rows = Object.entries(KEYWORDS)
 	const width = Math.max(...rows.map(([type]) => type.length))
 	for (const [type, keywords] of rows) {
 		process.stdout.write(`${type.padEnd(width)}  ${keywords.join(', ')}\n`)

@@ -1,56 +1,36 @@
 import type {Flags} from './args.ts'
 import {UsageError} from './usage-error.ts'
 
-type FlagPair = readonly [string, string]
+type FlagName = keyof Flags
 
-const RENDER_FLAGS: readonly string[] = [
-	'auto-direction',
-	'direction-breakpoint',
-	'font-family',
-	'font-family-mono',
-	'font-size',
-	'image-schemes',
-	'images',
-	'limit',
-	'link-rel',
-	'link-schemes',
-	'links',
-	'max-edges',
-	'max-width',
-	'now',
-	'output-limit',
-	'padding',
-	'responsive',
-]
+interface SwitchedOff {
+	/** Given as `--no-<off>`. */
+	readonly off: FlagName
+	readonly setting: FlagName
+}
 
-const OUTPUT_FLAGS: readonly string[] = ['css', 'out-dir', 'theme']
+interface Requirement {
+	readonly flag: FlagName
+	readonly requires: FlagName
+}
 
 // https://pele.run/api#renderoptions: these settings only apply while the
 // other option is on, so giving both means one of them is a mistake.
-const CONFLICTS: readonly FlagPair[] = [
-	['--no-links', '--link-schemes'],
-	['--no-links', '--link-rel'],
-	['--no-images', '--image-schemes'],
-	['--no-auto-direction', '--direction-breakpoint'],
+const SWITCHED_OFF: readonly SwitchedOff[] = [
+	{off: 'links', setting: 'link-schemes'},
+	{off: 'links', setting: 'link-rel'},
+	{off: 'images', setting: 'image-schemes'},
+	{off: 'auto-direction', setting: 'direction-breakpoint'},
 ]
 
 // Pele only rearranges a layout to fit `maxWidth`, so without it these do nothing.
-const REQUIREMENTS: readonly FlagPair[] = [
-	['--auto-direction', '--max-width'],
-	['--no-auto-direction', '--max-width'],
-	['--direction-breakpoint', '--max-width'],
+const REQUIREMENTS: readonly Requirement[] = [
+	{flag: 'auto-direction', requires: 'max-width'},
+	{flag: 'direction-breakpoint', requires: 'max-width'},
 ]
 
 function spelling(name: string, value: unknown): string {
 	return value === false ? `--no-${name}` : `--${name}`
-}
-
-function givenFlags(flags: Flags): Map<string, string> {
-	return new Map(
-		Object.entries(flags)
-			.filter(([, value]) => value !== undefined)
-			.map(([name, value]) => [name, spelling(name, value)]),
-	)
 }
 
 /**
@@ -64,23 +44,25 @@ function assertFlags(
 	accepted: readonly string[],
 	flags: Flags,
 ): void {
-	const given = givenFlags(flags)
-	for (const [name, flag] of given) {
-		if (!accepted.includes(name)) {
-			throw new UsageError(`"${command}" does not use ${flag}`)
+	for (const [name, value] of Object.entries(flags)) {
+		if (value !== undefined && !accepted.includes(name)) {
+			throw new UsageError(`"${command}" does not use ${spelling(name, value)}`)
 		}
 	}
-	const spelled = new Set(given.values())
-	for (const [first, second] of CONFLICTS) {
-		if (spelled.has(first) && spelled.has(second)) {
-			throw new UsageError(`${first} and ${second} cannot be used together`)
+	for (const {off, setting} of SWITCHED_OFF) {
+		if (flags[off] === false && flags[setting] !== undefined) {
+			throw new UsageError(
+				`--no-${off} and --${setting} cannot be used together`,
+			)
 		}
 	}
-	for (const [flag, required] of REQUIREMENTS) {
-		if (spelled.has(flag) && !spelled.has(required)) {
-			throw new UsageError(`${flag} requires ${required}`)
+	for (const {flag, requires} of REQUIREMENTS) {
+		if (flags[flag] !== undefined && flags[requires] === undefined) {
+			throw new UsageError(
+				`${spelling(flag, flags[flag])} requires --${requires}`,
+			)
 		}
 	}
 }
 
-export {assertFlags, OUTPUT_FLAGS, RENDER_FLAGS}
+export {assertFlags}
