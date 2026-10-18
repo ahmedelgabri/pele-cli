@@ -2,6 +2,8 @@ import {parseArgs} from 'node:util'
 
 import type {RenderOptions} from 'pele'
 
+import {parseFormat} from './report.ts'
+import type {Format} from './report.ts'
 import {readInputFile} from './sources.ts'
 import {assertEmbeddable, themeCss} from './theme.ts'
 import {describeError, UsageError} from './usage-error.ts'
@@ -34,15 +36,22 @@ const OUTPUT_OPTIONS = {
 	theme: {type: 'string'},
 } as const
 
+// How check and render report results.
+const REPORT_OPTIONS = {
+	format: {type: 'string'},
+} as const
+
 const OPTIONS = {
 	...RENDER_OPTIONS,
 	...OUTPUT_OPTIONS,
+	...REPORT_OPTIONS,
 	help: {short: 'h', type: 'boolean'},
 	version: {short: 'v', type: 'boolean'},
 } as const
 
 const RENDER_FLAGS: readonly string[] = Object.keys(RENDER_OPTIONS)
 const OUTPUT_FLAGS: readonly string[] = Object.keys(OUTPUT_OPTIONS)
+const REPORT_FLAGS: readonly string[] = Object.keys(REPORT_OPTIONS)
 
 const PARSE_CONFIG = {
 	allowNegative: true,
@@ -143,10 +152,18 @@ async function embeddedCss(flags: Flags): Promise<string> {
 }
 
 export type {Flags}
+function reportFormat(flags: Flags): Format {
+	// GitHub Actions sets GITHUB_ACTIONS=true; annotations then show on the PR.
+	const fallback = process.env['GITHUB_ACTIONS'] === 'true' ? 'github' : 'text'
+	return parseFormat(flags.format ?? fallback)
+}
+
 export {
 	embeddedCss,
 	OUTPUT_FLAGS,
 	parseCommandLine,
 	RENDER_FLAGS,
 	renderOptions,
+	REPORT_FLAGS,
+	reportFormat,
 }

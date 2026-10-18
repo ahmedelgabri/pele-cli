@@ -3,10 +3,12 @@ import path from 'node:path'
 
 import {PeleError, render} from 'pele'
 
-import {embeddedCss, renderOptions} from './args.ts'
+import {embeddedCss, renderOptions, reportFormat} from './args.ts'
 import type {Flags} from './args.ts'
 import {KEYWORDS} from './diagram-types.ts'
 import {ExitCode} from './exit-code.ts'
+import {report, toProblem} from './report.ts'
+import type {Format, Problem} from './report.ts'
 import {readDiagrams, readsStdin, readStdin} from './sources.ts'
 import type {Diagram} from './sources.ts'
 import {embedStyle} from './theme.ts'
@@ -20,7 +22,7 @@ interface Rendered {
 }
 
 interface Results {
-	readonly failed: number
+	readonly problems: readonly Problem[]
 	readonly rendered: readonly Rendered[]
 }
 
@@ -37,54 +39,29 @@ async function readInputs(
 	return perFile.flat()
 }
 
-function location(diagram: Diagram, error: Readonly<PeleError>): string {
-	if (error.line > 0) {
-		return `${diagram.file}:${diagram.lineOffset + error.line}:${error.column}`
-	}
-	if (diagram.lineOffset > 0) {
-		return `${diagram.file}:${diagram.lineOffset}`
-	}
-	return diagram.file
-}
-
-function report(diagram: Diagram, error: Readonly<PeleError>): void {
-	const type = error.type === null ? '' : ` in ${error.type} diagram`
-	const message = error.message.replaceAll(/^/gmu, '  ')
-	process.stderr.write(
-		`${location(diagram, error)}: ${error.code} error${type}\n${message}\n`,
-	)
-}
-
-function tryRender(diagram: Diagram, renderSvg: Renderer): string | undefined {
-	try {
-		return renderSvg(diagram.source)
-	} catch (error) {
-		if (!(error instanceof PeleError)) {
-			throw error
-		}
-		report(diagram, error)
-		return undefined
-	}
-}
-
 /**
- * Renders each diagram and reports the ones Pele rejects.
+ * Renders each diagram, collecting the ones Pele rejects.
  * @param diagrams - Diagrams to render.
  * @param renderSvg - Turns diagram source into SVG markup.
- * @returns The rendered diagrams and how many failed.
+ * @returns The rendered diagrams and the problems.
  */
 function renderEach(
 	diagrams: readonly Diagram[],
 	renderSvg: Renderer,
 ): Results {
 	const rendered: Rendered[] = []
+	const problems: Problem[] = []
 	for (const diagram of diagrams) {
-		const svg = tryRender(diagram, renderSvg)
-		if (svg !== undefined) {
-			rendered.push({diagram, svg})
+		try {
+			rendered.push({diagram, svg: renderSvg(diagram.source)})
+		} catch (error) {
+			if (!(error instanceof PeleError)) {
+				throw error
+			}
+			problems.push(toProblem(diagram, error))
 		}
 	}
-	return {failed: diagrams.length - rendered.length, rendered}
+	return {problems, rendered}
 }
 
 function createRenderer(flags: Flags, css: string): Renderer {
@@ -95,16 +72,8 @@ function createRenderer(flags: Flags, css: string): Renderer {
 	return (source) => embedStyle(render(source, options).svg, css)
 }
 
-function plural(count: number, word: string): string {
-	return `${count} ${word}${count === 1 ? '' : 's'}`
-}
-
-function failureSummary(failed: number, total: number): string {
-	return `${plural(failed, 'invalid diagram')} of ${total}\n`
-}
-
-function exitCode(failed: number): number {
-	return failed === 0 ? ExitCode.ok : ExitCode.invalid
+function exitCode(problems: readonly Problem[]): number {
+	return problems.length === 0 ? ExitCode.ok : ExitCode.invalid
 }
 
 function outputPath(diagram: Diagram, outDir: string | undefined): string {
@@ -133,21 +102,24 @@ function assertDistinctOutputs(
 function renderToStdout(
 	diagrams: readonly Diagram[],
 	renderSvg: Renderer,
+	format: Format,
 ): number {
-	const {failed, rendered} = renderEach(diagrams, renderSvg)
+	const {problems, rendered} = renderEach(diagrams, renderSvg)
 	for (const {svg} of rendered) {
 		process.stdout.write(`${svg}\n`)
 	}
-	return exitCode(failed)
+	report(format, {diagrams: diagrams.length, problems}, false)
+	return exitCode(problems)
 }
 
 async function renderToFiles(
 	diagrams: readonly Diagram[],
 	renderSvg: Renderer,
 	outDir: string | undefined,
+	format: Format,
 ): Promise<number> {
 	assertDistinctOutputs(diagrams, outDir)
-	const {failed, rendered} = renderEach(diagrams, renderSvg)
+	const {problems, rendered} = renderEach(diagrams, renderSvg)
 	if (outDir !== undefined) {
 		await mkdir(outDir, {recursive: true})
 	}
@@ -160,23 +132,18 @@ async function renderToFiles(
 			await writeFile(target, `${svg}\n`)
 		}),
 	)
-	process.stdout.write(outputs.map(({target}) => `${target}\n`).join(''))
-	if (failed > 0) {
-		process.stderr.write(failureSummary(failed, diagrams.length))
-	}
-	return exitCode(failed)
+	const written = outputs.map(({target}) => target)
+	report(format, {diagrams: diagrams.length, problems, written}, false)
+	return exitCode(problems)
 }
 
 async function check(files: readonly string[], flags: Flags): Promise<number> {
+	const format = reportFormat(flags)
 	const diagrams = await readInputs(files, readsStdin(files))
 	// Check renders rather than only parsing: layout and output limits fail at render time.
-	const {failed} = renderEach(diagrams, createRenderer(flags, ''))
-	process.stderr.write(
-		failed === 0
-			? `${plural(diagrams.length, 'diagram')} valid\n`
-			: failureSummary(failed, diagrams.length),
-	)
-	return exitCode(failed)
+	const {problems} = renderEach(diagrams, createRenderer(flags, ''))
+	report(format, {diagrams: diagrams.length, problems}, true)
+	return exitCode(problems)
 }
 
 async function renderCommand(
@@ -188,12 +155,18 @@ async function renderCommand(
 	if (fromStdin && outDir !== undefined) {
 		throw new UsageError('--out-dir cannot be used with stdin')
 	}
+	const format = reportFormat(flags)
+	if (fromStdin && format === 'json') {
+		throw new UsageError(
+			'--format json cannot be used with stdin: the SVG goes to stdout',
+		)
+	}
 	const renderSvg = createRenderer(flags, await embeddedCss(flags))
 	const diagrams = await readInputs(files, fromStdin)
 	if (fromStdin) {
-		return renderToStdout(diagrams, renderSvg)
+		return renderToStdout(diagrams, renderSvg, format)
 	}
-	return await renderToFiles(diagrams, renderSvg, outDir)
+	return await renderToFiles(diagrams, renderSvg, outDir, format)
 }
 
 function listTypes(): number {

@@ -147,4 +147,11 @@ async function readDiagrams(file: string): Promise<Diagram[]> {
 }
 
 export type {Diagram}
-export {extractFences, readDiagrams, readInputFile, readsStdin, readStdin}
+export {
+	extractFences,
+	readDiagrams,
+	readInputFile,
+	readsStdin,
+	readStdin,
+	STDIN,
+}

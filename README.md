@@ -39,6 +39,14 @@ docs/guide.md:42:11: syntax error in sequence diagram
 
 Exit codes: `0` all diagrams valid, `1` invalid diagrams, `2` usage or file errors.
 
+### Output formats
+
+`--format` chooses how `check` and `render` report errors:
+
+- `text` (default): the output above, on stderr.
+- `github`: one [workflow annotation](https://docs.github.com/actions/reference/workflow-commands-for-github-actions) per error on stderr, so GitHub Actions shows each error on the right line of a pull request. This is the default when `GITHUB_ACTIONS=true`, so `pele check docs/**/*.md` in a workflow needs no flag.
+- `json`: one JSON document on stdout with `diagrams`, `invalid`, `errors` (`file`, `line`, `column`, `code`, `type`, `message`; `line` and `column` are `null` when unknown), and for `render`, `written`. Not available when `render` writes the SVG to stdout.
+
 ## Theming
 
 Pele's SVG uses [CSS variables](https://pele.run/theming) and has no background, so by default it takes its colors from the page that embeds it. To make a standalone file that keeps its colors:

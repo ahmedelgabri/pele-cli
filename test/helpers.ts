@@ -12,6 +12,7 @@ interface Result {
 
 interface RunOptions {
 	readonly cwd: string
+	readonly env?: Readonly<Record<string, string>>
 	readonly input?: string
 }
 
@@ -33,6 +34,9 @@ function cliRunner(command: string, prefix: readonly string[] = []): Runner {
 		const result = spawnSync(command, [...prefix, ...args], {
 			...options,
 			encoding: 'utf8',
+			// CI sets GITHUB_ACTIONS=true, which switches the default --format to
+			// annotations; tests opt in through `env` instead.
+			env: {...process.env, GITHUB_ACTIONS: '', ...options.env},
 		})
 		return {code: result.status, stderr: result.stderr, stdout: result.stdout}
 	}

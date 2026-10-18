@@ -22,6 +22,11 @@ Output options (render only):
   --css <file>         Embed CSS in each SVG, after the theme. Set --pele-*
                        variables here, see https://pele.run/theming
 
+Reporting (check and render):
+  --format <name>      text, json, or github (annotations for GitHub Actions).
+                       Default: github when GITHUB_ACTIONS=true, else text.
+                       json is not available when rendering stdin to stdout
+
 Pele render options (check and render):
   --max-width <px>             Available width; narrow widths rearrange the layout
   --no-auto-direction          Keep the source direction (needs --max-width)

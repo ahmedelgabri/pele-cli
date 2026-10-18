@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-import {OUTPUT_FLAGS, parseCommandLine, RENDER_FLAGS} from './args.ts'
+import {
+	OUTPUT_FLAGS,
+	parseCommandLine,
+	RENDER_FLAGS,
+	REPORT_FLAGS,
+} from './args.ts'
 import type {Flags} from './args.ts'
 import {check, listTypes, renderCommand} from './commands.ts'
 import {ExitCode} from './exit-code.ts'
@@ -17,11 +22,14 @@ interface Command {
 }
 
 const COMMANDS = new Map<string, Command>([
-	['check', {flags: RENDER_FLAGS, run: check, takesFiles: true}],
+	[
+		'check',
+		{flags: [...RENDER_FLAGS, ...REPORT_FLAGS], run: check, takesFiles: true},
+	],
 	[
 		'render',
 		{
-			flags: [...RENDER_FLAGS, ...OUTPUT_FLAGS],
+			flags: [...RENDER_FLAGS, ...OUTPUT_FLAGS, ...REPORT_FLAGS],
 			run: renderCommand,
 			takesFiles: true,
 		},

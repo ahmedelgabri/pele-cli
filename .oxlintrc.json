@@ -70,6 +70,11 @@
 			}
 		},
 		{
+			// GITHUB_ACTIONS picks the default --format, and the test runner clears it.
+			"files": ["src/args.ts", "test/helpers.ts"],
+			"rules": {"node/no-process-env": "off"}
+		},
+		{
 			// PELE_E2E_BROWSER points the theme tests at a browser, for example in CI.
 			"files": ["e2e/themes.test.ts"],
 			"rules": {"node/no-process-env": "off"}

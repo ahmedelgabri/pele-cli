@@ -46,6 +46,15 @@ const REJECTED: ReadonlyArray<readonly [readonly string[], string]> = [
 		'--no-auto-direction requires --max-width',
 	],
 	[['check', '--auto-direction'], '--auto-direction requires --max-width'],
+	[
+		['check', '--format', 'xml'],
+		'--format must be one of text, json, github, got "xml"',
+	],
+	[['types', '--format', 'json'], '"types" does not use --format'],
+	[
+		['render', '--format', 'json'],
+		'--format json cannot be used with stdin: the SVG goes to stdout',
+	],
 	// Output targets.
 	[['render', '-', 'a.mmd'], 'stdin (-) cannot be combined with files'],
 	[['render', '-', '-o', 'out'], '--out-dir cannot be used with stdin'],
