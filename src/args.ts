@@ -1,0 +1,141 @@
+import {parseArgs} from 'node:util'
+
+import type {RenderOptions} from 'pele'
+
+import {readInputFile} from './sources.ts'
+import {assertEmbeddable, isTheme, THEMES, themeCss} from './theme.ts'
+import {describeError, UsageError} from './usage-error.ts'
+
+const OPTIONS = {
+	'auto-direction': {type: 'boolean'},
+	css: {type: 'string'},
+	'direction-breakpoint': {type: 'string'},
+	'font-family': {type: 'string'},
+	'font-family-mono': {type: 'string'},
+	'font-size': {type: 'string'},
+	help: {short: 'h', type: 'boolean'},
+	'image-schemes': {type: 'string'},
+	images: {type: 'boolean'},
+	limit: {type: 'string'},
+	'link-rel': {type: 'string'},
+	'link-schemes': {type: 'string'},
+	links: {type: 'boolean'},
+	'max-edges': {type: 'string'},
+	'max-width': {type: 'string'},
+	now: {type: 'string'},
+	'out-dir': {short: 'o', type: 'string'},
+	'output-limit': {type: 'string'},
+	padding: {type: 'string'},
+	responsive: {type: 'boolean'},
+	theme: {type: 'string'},
+	version: {short: 'v', type: 'boolean'},
+} as const
+
+const PARSE_CONFIG = {
+	allowNegative: true,
+	allowPositionals: true,
+	options: OPTIONS,
+} as const
+
+type CommandLine = ReturnType<typeof parseArgs<typeof PARSE_CONFIG>>
+type Flags = Readonly<CommandLine['values']>
+type Unset<Options> = {
+	[Key in keyof Options]-?: Options[Key] | undefined
+}
+
+function parseCommandLine(args: readonly string[]): CommandLine {
+	try {
+		return parseArgs({...PARSE_CONFIG, args: [...args]})
+	} catch (error) {
+		throw new UsageError(describeError(error))
+	}
+}
+
+function number(
+	flag: string,
+	value: string | undefined,
+	min: number,
+): number | undefined {
+	if (value === undefined) {
+		return undefined
+	}
+	const parsed = Number(value)
+	if (value.trim() === '' || !Number.isFinite(parsed) || parsed < min) {
+		throw new UsageError(`--${flag} must be a number >= ${min}, got "${value}"`)
+	}
+	return parsed
+}
+
+function list(value: string | undefined): string[] | undefined {
+	return value
+		?.split(',')
+		.map((item) => item.trim())
+		.filter((item) => item !== '')
+}
+
+function date(value: string | undefined): Date | undefined {
+	if (value === undefined) {
+		return undefined
+	}
+	const parsed = new Date(value)
+	if (Number.isNaN(parsed.getTime())) {
+		throw new UsageError(`--now must be a date, got "${value}"`)
+	}
+	return parsed
+}
+
+function renderOptions(flags: Flags): RenderOptions {
+	const options: Omit<
+		Unset<RenderOptions>,
+		'config' | 'icons' | 'idPrefix' | 'measurer'
+	> = {
+		autoDirection: flags['auto-direction'],
+		directionBreakpoint: number(
+			'direction-breakpoint',
+			flags['direction-breakpoint'],
+			0,
+		),
+		fontFamily: flags['font-family'],
+		fontFamilyMono: flags['font-family-mono'],
+		fontSize: number('font-size', flags['font-size'], 1),
+		imageSchemes: list(flags['image-schemes']),
+		images: flags.images,
+		limit: number('limit', flags.limit, 1),
+		linkRel: flags['link-rel'],
+		linkSchemes: list(flags['link-schemes']),
+		links: flags.links,
+		maxEdges: number('max-edges', flags['max-edges'], 1),
+		maxWidth: number('max-width', flags['max-width'], 1),
+		now: date(flags.now),
+		outputLimit: number('output-limit', flags['output-limit'], 1),
+		padding: number('padding', flags.padding, 0),
+		responsive: flags.responsive,
+	}
+	// Pass only the flags the user set so Pele's own defaults apply to everything else.
+	return Object.fromEntries(
+		Object.entries(options).filter(([, value]) => value !== undefined),
+	)
+}
+
+function themeCssFor(name: string): string {
+	if (!isTheme(name)) {
+		const names = THEMES.join(', ')
+		throw new UsageError(`--theme must be one of ${names}, got "${name}"`)
+	}
+	return themeCss(name)
+}
+
+async function customCss(file: string): Promise<string> {
+	const css = await readInputFile(file)
+	assertEmbeddable(css, file)
+	return css
+}
+
+async function embeddedCss(flags: Flags): Promise<string> {
+	const theme = flags.theme === undefined ? '' : themeCssFor(flags.theme)
+	const custom = flags.css === undefined ? '' : await customCss(flags.css)
+	return theme + custom
+}
+
+export type {Flags}
+export {embeddedCss, parseCommandLine, renderOptions}

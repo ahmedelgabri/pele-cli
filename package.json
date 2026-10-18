@@ -1,0 +1,36 @@
+{
+	"name": "pele-cli",
+	"version": "0.1.0",
+	"description": "Command-line interface for Pele: validate diagrams and render them to themeable SVG.",
+	"keywords": [
+		"cli",
+		"diagram",
+		"mermaid",
+		"pele",
+		"svg"
+	],
+	"license": "MIT",
+	"bin": {
+		"pele": "dist/cli.js"
+	},
+	"files": [
+		"dist"
+	],
+	"type": "module",
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"typecheck": "tsc",
+		"test": "node --test 'test/**/*.test.ts'",
+		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run build"
+	},
+	"dependencies": {
+		"pele": "1.6.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"typescript": "7.0.2"
+	},
+	"engines": {
+		"node": ">=22.4"
+	}
+}
