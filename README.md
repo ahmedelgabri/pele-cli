@@ -1,6 +1,8 @@
 # pele-cli
 
-Command-line interface for [Pele](https://pele.run). Validate diagrams and render them to themeable SVG files, from single files, Markdown documents, or stdin.
+Command-line interface for [Pele](https://pele.run). Validate diagrams and render them to themeable SVG files, from single files, Markdown documents, or stdin. It needs no browser.
+
+Install it from npm as [`@ahmedelgabri/pele-cli`](https://www.npmjs.com/package/@ahmedelgabri/pele-cli) (Node 22.4 or later), or with [Nix](#nix). Either way, the command is `pele`.
 
 ```sh
 npm install -g @ahmedelgabri/pele-cli
@@ -11,6 +13,21 @@ pele render README.md -o assets   # writes assets/README-1.svg, README-2.svg, ..
 cat flow.mmd | pele render --theme auto > flow.svg
 pele types                        # diagram types Pele supports
 ```
+
+## Contents
+
+- [Inputs](#inputs)
+- [Validation](#validation)
+  - [Output formats](#output-formats)
+- [Theming](#theming)
+- [Markdown with images](#markdown-with-images)
+- [Pele render options](#pele-render-options)
+  - [Flags that do not go together](#flags-that-do-not-go-together)
+- [Nix](#nix)
+  - [Working on the flake](#working-on-the-flake)
+- [Development](#development)
+  - [Fixtures](#fixtures)
+- [Releasing](#releasing)
 
 ## Inputs
 
@@ -92,25 +109,63 @@ Outside a browser, Pele estimates label widths from a built-in width table inste
 
 A flag that would have no effect is an error (exit code 2), so a typo or a forgotten flag does not pass silently:
 
-- `check` does not use `--out-dir`, `--theme`, or `--css`. `types` takes no files and no flags.
+- `check` does not use `--out-dir`, `--theme`, `--css`, or `--markdown-out`. `types` takes no files and no flags.
 - `--no-links` with `--link-schemes` or `--link-rel`, `--no-images` with `--image-schemes`, and `--no-auto-direction` with `--direction-breakpoint`: Pele ignores those settings while the feature is off.
 - `--direction-breakpoint` and `--[no-]auto-direction` need `--max-width`: Pele only rearranges a layout to fit a width.
-- `-` (stdin) cannot be combined with files or `--out-dir`.
+- `-` (stdin) cannot be combined with files, `--out-dir`, or `--markdown-out`. `render` from stdin also rejects `--format json`, because the SVG goes to stdout.
+- `--markdown-out` needs exactly one Markdown input, and it must not be that input.
 
 ## Nix
 
-The flake builds the CLI from `pnpm-lock.yaml`:
+The flake has a package (`packages.<system>.default`) built from `pnpm-lock.yaml`, and a dev shell. It supports `x86_64-linux`, `aarch64-linux`, and `aarch64-darwin`. You need Nix with flakes enabled.
+
+Run it once without installing anything:
 
 ```sh
 nix run github:ahmedelgabri/pele-cli -- check docs/*.md
+nix run github:ahmedelgabri/pele-cli -- render diagram.mmd --theme auto
+```
+
+Everything after `--` goes to `pele`.
+
+Install it into your profile:
+
+```sh
 nix profile install github:ahmedelgabri/pele-cli
 ```
 
-When `pnpm-lock.yaml` changes, the `pnpmDeps` hash in `flake.nix` must change too. Run `nix build`, then copy the `got:` hash from the mismatch error into `flake.nix`. CI builds the package, so a stale hash fails the build.
+Use it from another flake, for example in a NixOS, nix-darwin, or Home Manager configuration, or in a project's dev shell:
+
+```nix
+{
+  inputs.pele-cli.url = "github:ahmedelgabri/pele-cli";
+
+  # Then, where you list packages:
+  #   inputs.pele-cli.packages.${pkgs.stdenv.hostPlatform.system}.default
+}
+```
+
+Don't set `inputs.pele-cli.inputs.nixpkgs.follows`. The package's dependency hash depends on the exact pnpm version in this repository's `flake.lock`, so a different nixpkgs can fail the build with a hash mismatch.
+
+To pin a version, add a tag to the URL, such as `github:ahmedelgabri/pele-cli/v0.2.0`. `v0.1.0` came out before the flake had a package, so the first tag that works is the next release.
+
+In GitHub Actions, after installing Nix (for example with `cachix/install-nix-action`):
+
+```yaml
+- run: nix run github:ahmedelgabri/pele-cli -- check docs/*.md
+```
+
+`pele` sees `GITHUB_ACTIONS=true` and reports errors as annotations on the pull request.
+
+### Working on the flake
+
+In a clone, `nix develop` (or direnv with the included `.envrc`) opens the dev shell with Node and pnpm, `nix build` builds the package into `./result`, and `nix run . -- --help` runs it.
+
+The package pins its npm dependencies with a hash of the pnpm store (`pnpmDeps.hash` in `flake.nix`). When `pnpm-lock.yaml` changes, that hash must change too. Run `nix build`, then copy the `got:` hash from the mismatch error into `flake.nix`. CI builds the package, so a stale hash fails the build.
 
 ## Development
 
-Needs Node 22.4 or later. The Nix flake provides Node and pnpm.
+The tests need Node 24 or later (`node --test --test-global-setup` and TypeScript type stripping), even though the CLI runs on 22.4. The Nix dev shell (`nix develop`, or direnv with `.envrc`) provides Node and pnpm.
 
 ```sh
 pnpm install
@@ -120,10 +175,20 @@ pnpm test                # unit and CLI tests against src/
 pnpm run test:e2e        # builds, packs, installs the tarball, and tests the installed `pele`
 pnpm run format          # oxfmt
 pnpm run build           # compiles to dist/
+nix build                # builds the Nix package into ./result
 ```
+
+CI runs `pnpm run check` and `nix build` on Linux, then installs the packed tarball on Node 22.4.0, 22, and 24.
 
 The e2e theme tests open the SVGs in a headless Chromium-based browser and check the computed colors. They look for Helium, Google Chrome, or Chromium in the usual places; set `PELE_E2E_BROWSER` to a browser binary to choose one. Without a browser they are skipped, and the test output says so.
 
 ### Fixtures
 
 `e2e/fixtures/cases/<case>/` holds real input files and an `expected.json` that lists the inputs, the last line of `check`, the SVGs `render` writes, and every error (`file:line:col`, Pele error code, diagram type). Each case runs through both `check` and `render`. `e2e/fixtures/types/` has one `.mmd` per Pele diagram type, taken from https://pele.run/examples, and a test fails if `pele types` lists a type with no fixture. To add a case, add a folder with inputs and an `expected.json`. Fixtures are not formatted by oxfmt, and `.gitattributes` keeps their bytes (CRLF, BOM) as they are.
+
+## Releasing
+
+1. Bump `version` in `package.json`, commit, and push `main`.
+2. Tag the commit `v<version>` and push the tag.
+
+The Publish workflow checks that the tag matches `package.json`, runs `pnpm run check`, and publishes to npm with [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored. It needs a one-time setup on npmjs.com: in the package settings, add a trusted publisher for GitHub Actions with this repository and `publish.yml`. Then create a GitHub release for the tag.
