@@ -10,6 +10,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-24.04
+    # Must match the environment in the trusted publisher on npmjs.com.
+    environment: pele-cli-publishing
     permissions:
       contents: read
       # npm trusted publishing: npm exchanges the GitHub OIDC token for a
@@ -33,5 +35,37 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
             exit 1
           fi
-      # prepublishOnly runs `pnpm run check` and `pnpm run build` first.
+      # npm reads package.json before prepublishOnly builds dist/, and warns
+      # that the `bin` file is missing; build first so it exists.
+      - run: pnpm run build
+      # prepublishOnly runs `pnpm run check` and `pnpm run build` again.
       - run: npm publish
+
+  # A separate job, so the token that can write to the repository never sits
+  # next to the dependency code that `pnpm run check` runs.
+  release:
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=${GITHUB_REF_NAME#v}
+          previous=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          {
+            echo "Published to npm as [\`@ahmedelgabri/pele-cli@${version}\`](https://www.npmjs.com/package/@ahmedelgabri/pele-cli/v/${version})."
+            echo
+            echo "## Changes"
+            echo
+            git log --format='- %s' "${previous:+${previous}..}${GITHUB_REF_NAME}"
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md

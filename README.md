@@ -117,4 +117,4 @@ nix build           # the Nix package, in ./result
 
 ## Releasing
 
-Bump `version` in `package.json`, then push a `v<version>` tag. The Publish workflow runs the checks and publishes to npm with [trusted publishing](https://docs.npmjs.com/trusted-publishers). That needs a one-time setup on npmjs.com, adding this repository and `publish.yml` as a trusted publisher. Then create a GitHub release for the tag.
+Bump `version` in `package.json`, then push a `v<version>` tag. The Publish workflow runs the checks, publishes to npm with [trusted publishing](https://docs.npmjs.com/trusted-publishers), and creates the GitHub release with the commits since the previous tag. Trusted publishing needs a one-time setup on npmjs.com: owner `ahmedelgabri`, repository `pele-cli`, workflow `publish.yml`, no environment.
