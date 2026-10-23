@@ -47,6 +47,8 @@ document.body.dataset.colors = JSON.stringify({
 })
 </script>`
 
+const BROWSER_TIMEOUT_MS = 120_000
+
 const COLORS_ATTRIBUTE = /data-colors="(?<json>[^"]*)"/u
 
 function renderSvg(flags: readonly string[]): string {
@@ -91,7 +93,13 @@ function computedColors(svg: string, scheme: Scheme): Colors {
 			'--dump-dom',
 			`file://${page}`,
 		],
-		{encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 30_000},
+		{
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+			// On a fresh CI runner the first launch has taken from 9 s to more
+			// than 30 s; later launches take about 1 s. This only catches hangs.
+			timeout: BROWSER_TIMEOUT_MS,
+		},
 	)
 	const json = COLORS_ATTRIBUTE.exec(dom)?.groups?.['json'] ?? ''
 	return parseColors(json.replaceAll('&quot;', '"'))
