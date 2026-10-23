@@ -1,5 +1,7 @@
 import path from 'node:path'
 
+import {splitLines} from './sources.ts'
+
 /** Lines `start` to `end` (inclusive) become `text`. */
 interface Replacement {
 	readonly start: number
@@ -41,7 +43,7 @@ function replaceBlocks(
 	replacements: readonly Replacement[],
 ): string {
 	const eol = markdown.includes('\r\n') ? '\r\n' : '\n'
-	const lines = markdown.split(/\r?\n/u)
+	const lines = splitLines(markdown)
 	const byStart = new Map(
 		replacements.map((replacement) => [replacement.start, replacement]),
 	)

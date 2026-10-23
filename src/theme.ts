@@ -55,22 +55,17 @@ function variables(palette: Readonly<typeof LIGHT>): string {
 	return `.pele{${declarations.join(';')}}`
 }
 
-const THEME_CSS: ReadonlyMap<string, string> = new Map([
-	['light', variables(LIGHT) + BACKGROUND],
-	['dark', variables(DARK) + BACKGROUND],
-	[
-		'auto',
-		`${variables(LIGHT)}@media (prefers-color-scheme:dark){${variables(DARK)}}${BACKGROUND}`,
-	],
-])
+const THEMES = ['light', 'dark', 'auto'] as const
+type Theme = (typeof THEMES)[number]
 
-function themeCss(name: string): string {
-	const css = THEME_CSS.get(name)
-	if (css === undefined) {
-		const names = [...THEME_CSS.keys()].join(', ')
-		throw new UsageError(`--theme must be one of ${names}, got "${name}"`)
-	}
-	return css
+const THEME_CSS: Readonly<Record<Theme, string>> = {
+	auto: `${variables(LIGHT)}@media (prefers-color-scheme:dark){${variables(DARK)}}`,
+	dark: variables(DARK),
+	light: variables(LIGHT),
+}
+
+function themeCss(theme: Theme): string {
+	return THEME_CSS[theme] + BACKGROUND
 }
 
 function assertEmbeddable(css: string, origin: string): void {
@@ -94,4 +89,4 @@ function embedStyle(svg: string, css: string): string {
 	return `${svg.slice(0, end)}<style><![CDATA[${css}]]></style>${svg.slice(end)}`
 }
 
-export {assertEmbeddable, embedStyle, themeCss}
+export {assertEmbeddable, embedStyle, THEMES, themeCss}

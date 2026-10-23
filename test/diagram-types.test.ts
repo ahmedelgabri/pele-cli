@@ -11,7 +11,7 @@ test('every keyword is detected as its diagram type, and Pele can render it', ()
 		for (const keyword of keywords) {
 			const detected = detectType(keyword)
 			assert.equal(detected, type, keyword)
-			assert.ok(detected !== null && registered(detected), keyword)
+			assert.ok(registered(detected), keyword)
 		}
 	}
 })

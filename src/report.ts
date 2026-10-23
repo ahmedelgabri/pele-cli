@@ -1,8 +1,7 @@
-import type {PeleError} from 'pele'
+import type {PeleError, PeleErrorCode} from 'pele'
 
 import {STDIN} from './sources.ts'
 import type {Diagram} from './sources.ts'
-import {UsageError} from './usage-error.ts'
 
 const FORMATS = ['text', 'json', 'github'] as const
 type Format = (typeof FORMATS)[number]
@@ -12,8 +11,8 @@ interface Problem {
 	readonly file: string
 	readonly line: number | null
 	readonly column: number | null
-	readonly code: string
-	readonly type: string | null
+	readonly code: PeleErrorCode
+	readonly type: PeleError['type']
 	readonly message: string
 }
 
@@ -22,16 +21,6 @@ interface Outcome {
 	readonly problems: readonly Problem[]
 	/** Files render wrote, in order; absent for check and for stdout output. */
 	readonly written?: readonly string[]
-}
-
-function parseFormat(value: string): Format {
-	const format = FORMATS.find((name) => name === value)
-	if (format === undefined) {
-		throw new UsageError(
-			`--format must be one of ${FORMATS.join(', ')}, got "${value}"`,
-		)
-	}
-	return format
 }
 
 function toProblem(diagram: Diagram, error: Readonly<PeleError>): Problem {
@@ -125,5 +114,5 @@ function report(
 	}
 }
 
-export type {Format, Problem}
-export {parseFormat, report, toProblem}
+export type {Format, Outcome, Problem}
+export {FORMATS, report, toProblem}

@@ -2,10 +2,10 @@ import {parseArgs} from 'node:util'
 
 import type {RenderOptions} from 'pele'
 
-import {parseFormat} from './report.ts'
+import {FORMATS} from './report.ts'
 import type {Format} from './report.ts'
 import {readInputFile} from './sources.ts'
-import {assertEmbeddable, themeCss} from './theme.ts'
+import {assertEmbeddable, THEMES, themeCss} from './theme.ts'
 import {describeError, UsageError} from './usage-error.ts'
 
 // Pele's RenderOptions, used by check and render.
@@ -89,6 +89,19 @@ function number(
 	return parsed
 }
 
+function oneOf<Choice extends string>(
+	flag: string,
+	value: string,
+	choices: readonly Choice[],
+): Choice {
+	const choice = choices.find((name) => name === value)
+	if (choice === undefined) {
+		const names = choices.join(', ')
+		throw new UsageError(`--${flag} must be one of ${names}, got "${value}"`)
+	}
+	return choice
+}
+
 function list(value: string | undefined): string[] | undefined {
 	return value
 		?.split(',')
@@ -147,17 +160,21 @@ async function customCss(file: string): Promise<string> {
 }
 
 async function embeddedCss(flags: Flags): Promise<string> {
-	const theme = flags.theme === undefined ? '' : themeCss(flags.theme)
+	const theme =
+		flags.theme === undefined
+			? ''
+			: themeCss(oneOf('theme', flags.theme, THEMES))
 	const custom = flags.css === undefined ? '' : await customCss(flags.css)
 	return theme + custom
 }
 
-export type {Flags}
 function reportFormat(flags: Flags): Format {
 	// GitHub Actions sets GITHUB_ACTIONS=true; annotations then show on the PR.
 	const fallback = process.env['GITHUB_ACTIONS'] === 'true' ? 'github' : 'text'
-	return parseFormat(flags.format ?? fallback)
+	return oneOf('format', flags.format ?? fallback, FORMATS)
 }
+
+export type {Flags}
 
 export {
 	embeddedCss,

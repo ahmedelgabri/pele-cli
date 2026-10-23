@@ -50,8 +50,8 @@ function installedVersion(name: string): string {
 	const cliDir = realpathSync(
 		path.join(INSTALL_DIR, 'node_modules', PACKAGE_NAME),
 	)
-	const levels = PACKAGE_NAME.split('/').map(() => '..')
-	const modulesDir = path.resolve(cliDir, ...levels)
+	// @ahmedelgabri/pele-cli is two levels below node_modules.
+	const modulesDir = path.resolve(cliDir, '..', '..')
 	const manifestPath = path.join(modulesDir, name, 'package.json')
 	const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'))
 	if (

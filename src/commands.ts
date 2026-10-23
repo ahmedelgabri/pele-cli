@@ -7,7 +7,7 @@ import {ExitCode} from './exit-code.ts'
 import {assertDistinctOutputs, markdownOut, writeOutputs} from './outputs.ts'
 import type {MarkdownOut, Rendered} from './outputs.ts'
 import {report, toProblem} from './report.ts'
-import type {Format, Problem} from './report.ts'
+import type {Outcome, Problem} from './report.ts'
 import {readDiagrams, readsStdin, readStdin} from './sources.ts'
 import type {Diagram} from './sources.ts'
 import {embedStyle} from './theme.ts'
@@ -73,28 +73,24 @@ function exitCode(problems: readonly Problem[]): number {
 function renderToStdout(
 	diagrams: readonly Diagram[],
 	renderSvg: Renderer,
-	format: Format,
-): number {
+): Outcome {
 	const {problems, rendered} = renderEach(diagrams, renderSvg)
 	for (const {svg} of rendered) {
 		process.stdout.write(`${svg}\n`)
 	}
-	report(format, {diagrams: diagrams.length, problems}, false)
-	return exitCode(problems)
+	return {diagrams: diagrams.length, problems}
 }
 
 async function renderToFiles(
 	diagrams: readonly Diagram[],
 	renderSvg: Renderer,
 	outDir: string | undefined,
-	format: Format,
 	markdown: MarkdownOut | undefined,
-): Promise<number> {
+): Promise<Outcome> {
 	assertDistinctOutputs(diagrams, outDir)
 	const {problems, rendered} = renderEach(diagrams, renderSvg)
 	const written = await writeOutputs(rendered, outDir, markdown)
-	report(format, {diagrams: diagrams.length, problems, written}, false)
-	return exitCode(problems)
+	return {diagrams: diagrams.length, problems, written}
 }
 
 async function check(files: readonly string[], flags: Flags): Promise<number> {
@@ -121,13 +117,14 @@ async function renderCommand(
 			'--format json cannot be used with stdin: the SVG goes to stdout',
 		)
 	}
-	const markdown = markdownOut(files, fromStdin, flags['markdown-out'])
+	const markdown = markdownOut(files, flags['markdown-out'])
 	const renderSvg = createRenderer(flags, await embeddedCss(flags))
 	const diagrams = await readInputs(files, fromStdin)
-	if (fromStdin) {
-		return renderToStdout(diagrams, renderSvg, format)
-	}
-	return await renderToFiles(diagrams, renderSvg, outDir, format, markdown)
+	const outcome = fromStdin
+		? renderToStdout(diagrams, renderSvg)
+		: await renderToFiles(diagrams, renderSvg, outDir, markdown)
+	report(format, outcome, false)
+	return exitCode(outcome.problems)
 }
 
 function listTypes(): number {
