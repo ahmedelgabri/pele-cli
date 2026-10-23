@@ -13,6 +13,9 @@ const INSTALL_DIR = path.join(ROOT, 'node_modules', '.cache', 'pele-cli-e2e')
 
 const PELE_BIN = path.join(INSTALL_DIR, 'node_modules', '.bin', 'pele')
 
+// The published name; the e2e install fails if package.json says otherwise.
+const PACKAGE_NAME = '@ahmedelgabri/pele-cli'
+
 const pele = cliRunner(PELE_BIN)
 
 /**
@@ -38,15 +41,18 @@ function renderStdin(
 
 /**
  * Reads the version of a package as installed next to pele-cli.
- * @param name - Package name, or `pele-cli` itself.
+ * @param name - Package name, or PACKAGE_NAME itself.
  * @returns The installed version.
  */
 function installedVersion(name: string): string {
-	// pnpm links pele-cli into .pnpm/, where its dependencies are siblings.
+	// pnpm links pele-cli into .pnpm/<id>/node_modules/, where its dependencies
+	// are siblings. A scoped name adds one directory level.
 	const cliDir = realpathSync(
-		path.join(INSTALL_DIR, 'node_modules', 'pele-cli'),
+		path.join(INSTALL_DIR, 'node_modules', PACKAGE_NAME),
 	)
-	const manifestPath = path.join(path.dirname(cliDir), name, 'package.json')
+	const levels = PACKAGE_NAME.split('/').map(() => '..')
+	const modulesDir = path.resolve(cliDir, ...levels)
+	const manifestPath = path.join(modulesDir, name, 'package.json')
 	const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'))
 	if (
 		typeof manifest === 'object' &&
@@ -59,4 +65,12 @@ function installedVersion(name: string): string {
 	throw new Error(`${name} has no version`)
 }
 
-export {INSTALL_DIR, installedVersion, pele, PELE_BIN, renderStdin, ROOT}
+export {
+	INSTALL_DIR,
+	installedVersion,
+	PACKAGE_NAME,
+	pele,
+	PELE_BIN,
+	renderStdin,
+	ROOT,
+}

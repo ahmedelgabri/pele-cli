@@ -3,7 +3,7 @@
 Command-line interface for [Pele](https://pele.run). Validate diagrams and render them to themeable SVG files, from single files, Markdown documents, or stdin.
 
 ```sh
-npm install -g pele-cli
+npm install -g @ahmedelgabri/pele-cli
 
 pele check docs/*.md              # validate every diagram, exit 1 on errors
 pele render diagram.mmd           # writes diagram.svg

@@ -3,7 +3,7 @@ import {spawnSync} from 'node:child_process'
 import {test} from 'node:test'
 
 import {workspace} from '../test/helpers.ts'
-import {installedVersion, pele, PELE_BIN} from './install.ts'
+import {installedVersion, PACKAGE_NAME, pele, PELE_BIN} from './install.ts'
 
 test('--help prints usage and exits 0', () => {
 	const {code, stdout, stderr} = pele(['--help'], {cwd: workspace({})})
@@ -30,7 +30,7 @@ test('--version shows the installed pele-cli and Pele versions', () => {
 	assert.equal(code, 0)
 	assert.equal(
 		stdout,
-		`pele-cli ${installedVersion('pele-cli')} (pele ${installedVersion('pele')})\n`,
+		`pele-cli ${installedVersion(PACKAGE_NAME)} (pele ${installedVersion('pele')})\n`,
 	)
 })
 

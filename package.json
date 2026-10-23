@@ -1,5 +1,5 @@
 {
-	"name": "pele-cli",
+	"name": "@ahmedelgabri/pele-cli",
 	"version": "0.1.0",
 	"description": "Command-line interface for Pele: validate diagrams and render them to themeable SVG.",
 	"keywords": [
@@ -26,6 +26,9 @@
 		"dist"
 	],
 	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
 		"typecheck": "tsc",
