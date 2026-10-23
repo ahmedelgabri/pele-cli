@@ -25,8 +25,9 @@
         let
           inherit (pkgs) lib;
           manifest = lib.importJSON ./package.json;
-          # One pnpm major for the package and the dev shell, so the lockfile
-          # format matches.
+          # The package and the dev shell use the same Node and pnpm, so the
+          # lockfile format and the runtime match.
+          nodejs = pkgs.nodejs_latest;
           pnpm = pkgs.pnpm_12;
         in
         {
@@ -42,21 +43,29 @@
             pname = "pele-cli";
             inherit (manifest) version;
 
-            # Only what the build reads, so test and docs changes don't rebuild it.
+            # Only what the package needs, so test and docs changes don't rebuild it.
             src = lib.fileset.toSource {
               root = ./.;
               fileset = lib.fileset.unions [
                 ./package.json
                 ./pnpm-lock.yaml
                 ./pnpm-workspace.yaml
-                ./tsconfig.json
-                ./tsconfig.build.json
                 ./src
               ];
             };
 
+            # Runtime dependencies only (pele). The dev dependencies include
+            # every platform's TypeScript, oxlint, and oxfmt binaries, about
+            # 1 GB that the package never uses.
+            pnpmInstallFlags = [ "--prod" ];
+
             pnpmDeps = pkgs.fetchPnpmDeps {
-              inherit (finalAttrs) pname version src;
+              inherit (finalAttrs)
+                pname
+                version
+                src
+                pnpmInstallFlags
+                ;
               inherit pnpm;
               fetcherVersion = 4;
               # pnpm creates an empty v11/links directory on macOS but not on
@@ -68,46 +77,43 @@
                 fi
               '';
               # Changes with every pnpm-lock.yaml change; see the README's Nix section.
-              hash = "sha256-U82gcISplh72ZWWxGr5/5/4bWa1FFfWJFbLKHN2/ekg=";
+              hash = "sha256-as8cHIGvs6sRTFGjZPM6AhQymFsIZmeC2AvTtc0I5Fs=";
             };
 
             nativeBuildInputs = [
               pkgs.makeWrapper
-              pkgs.nodejs_latest
+              nodejs
               pnpm
-              pkgs.pnpmBuildHook
               pkgs.pnpmConfigHook
             ];
+
+            # Node strips the types when it runs src/cli.ts, as the tests do, so
+            # there is no TypeScript build.
+            dontBuild = true;
 
             installPhase = ''
               runHook preInstall
 
-              # Reinstall with runtime dependencies only (pele). `pnpm prune` re-checks
-              # the release-age policy, which needs registry metadata, and an install
-              # over the existing node_modules leaves dev packages in node_modules/.pnpm.
-              rm -rf node_modules
-              pnpm install --offline --prod --frozen-lockfile --ignore-scripts
-
-              package=$out/lib/node_modules/${manifest.name}
+              # Not under node_modules/: Node refuses to strip types there.
+              package=$out/lib/pele-cli
               mkdir -p $package
-              cp -r dist node_modules package.json $package/
-              makeWrapper ${lib.getExe pkgs.nodejs_latest} $out/bin/pele \
-                --add-flags $package/dist/cli.js
+              cp -r src node_modules package.json $package/
+              makeWrapper ${lib.getExe nodejs} $out/bin/pele \
+                --add-flags $package/src/cli.ts
 
               runHook postInstall
             '';
 
             meta = {
-              inherit (manifest) description;
-              homepage = "https://github.com/ahmedelgabri/pele-cli";
-              license = lib.licenses.mit;
+              inherit (manifest) description homepage;
+              license = lib.getLicenseFromSpdxId manifest.license;
               mainProgram = "pele";
             };
           });
 
           devShells.default = pkgs.mkShell {
             packages = [
-              pkgs.nodejs_latest
+              nodejs
               pnpm
             ];
             shellHook = /* bash */ ''
