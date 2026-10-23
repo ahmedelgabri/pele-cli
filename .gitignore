@@ -3,3 +3,4 @@ dist/
 .direnv/
 *.tgz
 .DS_Store
+result

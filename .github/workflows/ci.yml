@@ -29,6 +29,9 @@ jobs:
       - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+      # Fails when pnpm-lock.yaml changed without updating the pnpmDeps hash
+      # in flake.nix.
+      - run: nix build .#default --print-build-logs && ./result/bin/pele --version
       - run: pnpm run build && pnpm pack --pack-destination package
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

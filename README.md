@@ -97,6 +97,17 @@ A flag that would have no effect is an error (exit code 2), so a typo or a forgo
 - `--direction-breakpoint` and `--[no-]auto-direction` need `--max-width`: Pele only rearranges a layout to fit a width.
 - `-` (stdin) cannot be combined with files or `--out-dir`.
 
+## Nix
+
+The flake builds the CLI from `pnpm-lock.yaml`:
+
+```sh
+nix run github:ahmedelgabri/pele-cli -- check docs/*.md
+nix profile install github:ahmedelgabri/pele-cli
+```
+
+When `pnpm-lock.yaml` changes, the `pnpmDeps` hash in `flake.nix` must change too. Run `nix build`, then copy the `got:` hash from the mismatch error into `flake.nix`. CI builds the package, so a stale hash fails the build.
+
 ## Development
 
 Needs Node 22.4 or later. The Nix flake provides Node and pnpm.
