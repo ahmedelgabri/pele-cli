@@ -41,7 +41,7 @@
 		"prepublishOnly": "pnpm run check && pnpm run build"
 	},
 	"dependencies": {
-		"pele": "1.6.0"
+		"pele": "1.10.0"
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
