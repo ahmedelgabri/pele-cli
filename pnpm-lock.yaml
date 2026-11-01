@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       pele:
-        specifier: 1.6.0
-        version: 1.6.0
+        specifier: 1.10.0
+        version: 1.10.0
     devDependencies:
       '@types/node':
         specifier: ^24.19.2
@@ -457,8 +457,8 @@ packages:
       vite-plus:
         optional: true
 
-  pele@1.6.0:
-    resolution: {integrity: sha512-VfAiVItsOGlGhvnBfphdT28VCG7mXMZxQNOwAGsCtxI2ztbUsT39MraEOYjsapLxVETkdUZscm0DdotYDQMLdw==}
+  pele@1.10.0:
+    resolution: {integrity: sha512-hDMEM+GQ01pZin8tst3PRXGeB/xFATvXBreHHtjx2glSNAQ7nHFq7EbMuNJGTbqkYgueWPboLjyUBsAudsb1qQ==}
     engines: {node: '>=20'}
 
   tinypool@2.2.0:
@@ -727,7 +727,7 @@ snapshots:
       '@oxlint/binding-win32-x64-msvc': 1.87.0
       oxlint-tsgolint: 7.0.2004
 
-  pele@1.6.0: {}
+  pele@1.10.0: {}
 
   tinypool@2.2.0: {}
 
